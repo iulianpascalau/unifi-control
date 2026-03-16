@@ -32,3 +32,12 @@ endif
 run-lint:
 	@echo "Running golint"
 	bin/golangci-lint run --max-issues-per-linter 0 --max-same-issues 0 --timeout=2m
+
+run-frontend:
+	cd frontend && \
+	export NVM_DIR="$$HOME/.nvm" && \
+	[ -s "$$NVM_DIR/nvm.sh" ] && \. "$$NVM_DIR/nvm.sh" && \
+	nvm exec 22.12.0 npm run dev
+
+run-backend: build
+	./hikvision-control --log-level *:DEBUG

@@ -57,7 +57,7 @@ func (c *client) UpdateChannelConfig(channel string, payload []byte) error {
 		return fmt.Errorf("creating request: %w", err)
 	}
 
-	req.Header.Set("Content-Type", "application/xml")
+	req.Header.Set("Content-Type", "text/xml")
 
 	resp, err := c.http.Do(req)
 	if err != nil {

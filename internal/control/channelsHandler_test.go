@@ -75,7 +75,7 @@ func TestNewChannelsHandler(t *testing.T) {
 	t.Run("no channels should not error", func(t *testing.T) {
 		cfg := config.Config{}
 		hikHandler := &testsCommon.HikvisionHandlerStub{}
-		handler, err := NewChannelsHandler(cfg, hikHandler)
+		handler, err := NewChannelsHandler(cfg, "password", hikHandler)
 		require.NoError(t, err)
 		assert.NotNil(t, handler)
 	})
@@ -91,14 +91,14 @@ func TestNewChannelsHandler(t *testing.T) {
 			},
 		}
 		hikHandler := &testsCommon.HikvisionHandlerStub{}
-		handler, err := NewChannelsHandler(cfg, hikHandler)
+		handler, err := NewChannelsHandler(cfg, "password", hikHandler)
 		require.Error(t, err)
 		require.Equal(t, "channel 1 was defined more than once", err.Error())
 		assert.Nil(t, handler)
 	})
 	t.Run("nil hikvision handler should error", func(t *testing.T) {
 		cfg := config.Config{}
-		handler, err := NewChannelsHandler(cfg, nil)
+		handler, err := NewChannelsHandler(cfg, "password", nil)
 		require.Error(t, err)
 		require.Equal(t, "hikvision handler is nil", err.Error())
 		assert.Nil(t, handler)
@@ -115,7 +115,7 @@ func TestNewChannelsHandler(t *testing.T) {
 			},
 		}
 		hikHandler := &testsCommon.HikvisionHandlerStub{}
-		handler, err := NewChannelsHandler(cfg, hikHandler)
+		handler, err := NewChannelsHandler(cfg, "password", hikHandler)
 		require.NoError(t, err)
 		assert.NotNil(t, handler)
 
@@ -134,7 +134,7 @@ func TestChannelsHandler_GetChannel(t *testing.T) {
 				return nil, nil
 			},
 		}
-		handler, err := NewChannelsHandler(getMockConfig(), hikHandler)
+		handler, err := NewChannelsHandler(getMockConfig(), "password", hikHandler)
 		require.NoError(t, err)
 
 		status := handler.GetChannel("7")
@@ -154,7 +154,7 @@ func TestChannelsHandler_GetChannel(t *testing.T) {
 				return nil, getErrorResponse()
 			},
 		}
-		handler, err := NewChannelsHandler(getMockConfig(), hikHandler)
+		handler, err := NewChannelsHandler(getMockConfig(), "password", hikHandler)
 		require.NoError(t, err)
 
 		status := handler.GetChannel("6")
@@ -174,7 +174,7 @@ func TestChannelsHandler_GetChannel(t *testing.T) {
 				return getMockResponse(channel, "inside", "192.0.2.1"), nil
 			},
 		}
-		handler, err := NewChannelsHandler(getMockConfig(), hikHandler)
+		handler, err := NewChannelsHandler(getMockConfig(), "password", hikHandler)
 		require.NoError(t, err)
 
 		status := handler.GetChannel("6")
@@ -194,7 +194,7 @@ func TestChannelsHandler_GetChannel(t *testing.T) {
 				return getMockResponse(channel, "inside", "192.0.0.1"), nil
 			},
 		}
-		handler, err := NewChannelsHandler(getMockConfig(), hikHandler)
+		handler, err := NewChannelsHandler(getMockConfig(), "password", hikHandler)
 		require.NoError(t, err)
 
 		status := handler.GetChannel("6")
@@ -224,7 +224,7 @@ func TestChannelsHandler_UpdateChannel(t *testing.T) {
 				return nil
 			},
 		}
-		handler, err := NewChannelsHandler(getMockConfig(), hikHandler)
+		handler, err := NewChannelsHandler(getMockConfig(), "password", hikHandler)
 		require.NoError(t, err)
 
 		err = handler.Set("7", true)
@@ -241,7 +241,7 @@ func TestChannelsHandler_UpdateChannel(t *testing.T) {
 				return nil
 			},
 		}
-		handler, err := NewChannelsHandler(getMockConfig(), hikHandler)
+		handler, err := NewChannelsHandler(getMockConfig(), "password", hikHandler)
 		require.NoError(t, err)
 
 		err = handler.Set("6", true)
@@ -257,7 +257,7 @@ func TestChannelsHandler_UpdateChannel(t *testing.T) {
 				return nil
 			},
 		}
-		handler, err := NewChannelsHandler(getMockConfig(), hikHandler)
+		handler, err := NewChannelsHandler(getMockConfig(), "password", hikHandler)
 		require.NoError(t, err)
 
 		err = handler.Set("6", true)
@@ -273,7 +273,7 @@ func TestChannelsHandler_UpdateChannel(t *testing.T) {
 				return nil
 			},
 		}
-		handler, err := NewChannelsHandler(getMockConfig(), hikHandler)
+		handler, err := NewChannelsHandler(getMockConfig(), "password", hikHandler)
 		require.NoError(t, err)
 
 		err = handler.Set("6", false)

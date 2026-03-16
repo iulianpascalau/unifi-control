@@ -8,13 +8,15 @@ import (
 )
 
 type ChannelConfig struct {
-	Channel      string `toml:"Channel"`
-	OkIPAddress  string `toml:"OkIPAddress"`
-	NOKIPAddress string `toml:"NokIPAddress"`
+	Channel   string `toml:"Channel"`
+	Name      string `toml:"Name"`
+	SwitchMAC string `toml:"SwitchMAC"`
+	Port      int    `toml:"Port"`
 }
 
 type Config struct {
-	Channels []ChannelConfig `toml:"Channels"`
+	ListenAddress string          `toml:"ListenAddress"`
+	Channels      []ChannelConfig `toml:"Channels"`
 }
 
 // LoadConfig parses a TOML file into the Config struct
