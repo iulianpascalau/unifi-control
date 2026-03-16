@@ -1,0 +1,9 @@
+[[Channels]]
+    Channel = "0"
+	OkIPAddress = "192.0.2.1"
+	NokIPAddress = "192.1.2.1"
+
+[[Channels]]
+    Channel = "1"
+	OkIPAddress = "192.0.2.2"
+	NokIPAddress = "192.1.2.2"
