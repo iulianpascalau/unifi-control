@@ -15,6 +15,7 @@ import (
 	"hikvision-control/internal/config"
 	"hikvision-control/internal/control"
 	"hikvision-control/internal/hikvision"
+	"hikvision-control/internal/unifi" // Added for UniFi client
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -77,12 +78,17 @@ VERSION:
 	}
 
 	envFileContents = map[string]string{
-		common.EnvUser:     "",
-		common.EnvPass:     "",
-		common.EnvIP:       "",
-		common.EnvChannels: "",
-		common.EnvAuthUser: "",
-		common.EnvAuthPass: "",
+		common.EnvUser:       "",
+		common.EnvPass:       "",
+		common.EnvIP:         "",
+		common.EnvAuthUser:   "",
+		common.EnvAuthPass:   "",
+		common.EnvJWTKey:     "",
+		common.EnvCameraPass: "",
+		common.EnvUnifiUser:  "",
+		common.EnvUnifiPass:  "",
+		common.EnvUnifiURL:   "",
+		common.EnvUnifiSite:  "",
 	}
 
 	log = logger.GetOrCreate("hikvision-control")
@@ -156,18 +162,30 @@ func run(ctx *cli.Context) error {
 		return err
 	}
 
+	unifiClient := unifi.NewClient(
+		envFileContents[common.EnvUnifiURL],
+		envFileContents[common.EnvUnifiUser],
+		envFileContents[common.EnvUnifiPass],
+		envFileContents[common.EnvUnifiSite],
+	)
+
 	client := hikvision.NewClient(envFileContents[common.EnvIP], envFileContents[common.EnvUser], envFileContents[common.EnvPass])
-	handler, err := control.NewChannelsHandler(*cfg, client)
+	handler, err := control.NewChannelsHandler(*cfg, unifiClient, client)
 	if err != nil {
 		return err
 	}
 
-	serv := api.NewAPI(handler, envFileContents[common.EnvAuthUser], envFileContents[common.EnvAuthPass])
+	serv := api.NewAPI(
+		handler,
+		envFileContents[common.EnvAuthUser],
+		envFileContents[common.EnvAuthPass],
+		[]byte(envFileContents[common.EnvJWTKey]),
+	)
 
 	go func() {
-		err := serv.Start(cfg.ListenAddress)
-		if err != nil && err != http.ErrServerClosed {
-			log.Error("API Server failed to start", "error", err)
+		errServer := serv.Start(cfg.ListenAddress)
+		if errServer != nil && errServer != http.ErrServerClosed {
+			log.Error("API Server failed to start", "error", errServer)
 		}
 	}()
 

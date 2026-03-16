@@ -1,3 +1,5 @@
+ListenAddress = "0.0.0.0:8080"
+
 [[Channels]]
     Channel = "0"
 	OkIPAddress = "192.0.2.1"

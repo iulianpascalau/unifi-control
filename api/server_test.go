@@ -17,6 +17,8 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+var testJWTKey = []byte("test_secret_key")
+
 // MockChannelStatusProvider is a mock implementation of the ChannelStatusProvider interface
 type MockChannelStatusProvider struct {
 	mock.Mock
@@ -40,7 +42,7 @@ func (m *MockChannelStatusProvider) Set(channel string, active bool) error {
 func setupTestRouter(username, password string) (*API, *MockChannelStatusProvider) {
 	gin.SetMode(gin.TestMode)
 	mockProvider := new(MockChannelStatusProvider)
-	api := NewAPI(mockProvider, username, password)
+	api := NewAPI(mockProvider, username, password, testJWTKey)
 	return api, mockProvider
 }
 
@@ -52,7 +54,7 @@ func generateValidToken(username string) string {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, _ := token.SignedString(jwtKey)
+	tokenString, _ := token.SignedString(testJWTKey)
 	return tokenString
 }
 

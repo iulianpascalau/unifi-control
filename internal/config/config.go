@@ -8,9 +8,10 @@ import (
 )
 
 type ChannelConfig struct {
-	Channel      string `toml:"Channel"`
-	OkIPAddress  string `toml:"OkIPAddress"`
-	NOKIPAddress string `toml:"NokIPAddress"`
+	Channel   string `toml:"Channel"`
+	Name      string `toml:"Name"`
+	SwitchMAC string `toml:"SwitchMAC"`
+	Port      int    `toml:"Port"`
 }
 
 type Config struct {

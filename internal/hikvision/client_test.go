@@ -57,7 +57,7 @@ func TestClient_UpdateChannelConfig(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/ISAPI/ContentMgmt/InputProxy/channels/2", r.URL.Path)
 		assert.Equal(t, http.MethodPut, r.Method)
-		assert.Equal(t, "application/xml", r.Header.Get("Content-Type"))
+		assert.Equal(t, "text/xml", r.Header.Get("Content-Type"))
 
 		w.WriteHeader(http.StatusOK)
 	}))

@@ -37,4 +37,7 @@ run-frontend:
 	cd frontend && \
 	export NVM_DIR="$$HOME/.nvm" && \
 	[ -s "$$NVM_DIR/nvm.sh" ] && \. "$$NVM_DIR/nvm.sh" && \
-	nvm exec 22.12.0 npm start
+	nvm exec 22.12.0 npm run dev
+
+run-backend: build
+	./hikvision-control --log-level *:DEBUG

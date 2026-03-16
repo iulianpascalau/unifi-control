@@ -10,13 +10,12 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-var jwtKey = []byte("super_secret_hik_key_change_me") // Should probably move to env or config in production
-
 type API struct {
 	router          *gin.Engine
 	channelsHandler ChannelStatusProvider
 	username        string
 	password        string
+	jwtKey          []byte
 	httpServer      *http.Server
 }
 
@@ -30,7 +29,7 @@ type setChannelRequest struct {
 }
 
 // NewAPI creates a new gin REST API instance
-func NewAPI(ch ChannelStatusProvider, username, password string) *API {
+func NewAPI(ch ChannelStatusProvider, username, password string, jwtKey []byte) *API {
 	r := gin.Default()
 
 	api := &API{
@@ -38,6 +37,7 @@ func NewAPI(ch ChannelStatusProvider, username, password string) *API {
 		channelsHandler: ch,
 		username:        username,
 		password:        password,
+		jwtKey:          jwtKey,
 	}
 
 	api.setupRoutes()
@@ -98,7 +98,7 @@ func (a *API) login(c *gin.Context) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString(jwtKey)
+	tokenString, err := token.SignedString(a.jwtKey)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
 		return
@@ -125,7 +125,7 @@ func (a *API) authMiddleware() gin.HandlerFunc {
 
 		claims := &jwt.RegisteredClaims{}
 		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-			return jwtKey, nil
+			return a.jwtKey, nil
 		})
 
 		if err != nil || !token.Valid {

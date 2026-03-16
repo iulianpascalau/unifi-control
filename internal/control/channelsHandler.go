@@ -1,12 +1,13 @@
 package control
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
-	"regexp"
 
 	"hikvision-control/internal/common"
 	"hikvision-control/internal/config"
+	"hikvision-control/internal/unifi"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 )
@@ -17,9 +18,10 @@ type channelsHandler struct {
 	channelIDs    []string
 	channelsAsMap map[string]config.ChannelConfig
 	hikHandler    HikvisionHandler
+	unifiClient   *unifi.Client
 }
 
-func NewChannelsHandler(cfg config.Config, hikHandler HikvisionHandler) (*channelsHandler, error) {
+func NewChannelsHandler(cfg config.Config, unifiClient *unifi.Client, hikHandler HikvisionHandler) (*channelsHandler, error) {
 	channelIDs, err := processChannels(cfg.Channels)
 	if err != nil {
 		return nil, err
@@ -33,6 +35,7 @@ func NewChannelsHandler(cfg config.Config, hikHandler HikvisionHandler) (*channe
 		channelsAsMap: sliceToMap(cfg.Channels),
 		channelIDs:    channelIDs,
 		hikHandler:    hikHandler,
+		unifiClient:   unifiClient,
 	}, nil
 }
 
@@ -68,64 +71,40 @@ func (h *channelsHandler) GetChannels() []string {
 }
 
 func (h *channelsHandler) GetChannel(channel string) common.ChannelStatus {
-	cfg, found := h.channelsAsMap[channel]
-	if !found {
+	cfg, ok := h.channelsAsMap[channel]
+	if !ok {
 		return common.ChannelStatus{
-			Channel: channel,
 			Name:    unknownName,
+			Channel: channel,
+			Active:  false,
 			Error:   fmt.Sprintf("channel %s not found", channel),
 		}
 	}
 
-	status := common.ChannelStatus{
-		Name:    unknownName,
-		Channel: cfg.Channel,
-	}
-
-	chanConfig, err := h.hikHandler.GetChannelConfig(channel)
+	poeOn, err := h.unifiClient.IsPoeOn(cfg.SwitchMAC, cfg.Port)
 	if err != nil {
-		status.Error = err.Error()
-		return status
+		return common.ChannelStatus{
+			Name:    cfg.Name,
+			Channel: channel,
+			Active:  false,
+			Error:   fmt.Sprintf("unifi error: %v", err),
+		}
 	}
 
-	// Parse the config and return the status (active: true if the IP address is set to the exact cfg.OkIPAddress, false otherwise)
-	reIP := regexp.MustCompile(`<ipAddress>(.*?)</ipAddress>`)
-	matches := reIP.FindSubmatch(chanConfig)
-	status.Active = len(matches) > 1 && string(matches[1]) == cfg.OkIPAddress
-
-	// Get the name of the channel from the received config
-	reName := regexp.MustCompile(`<name>(.*?)</name>`)
-	nameMatches := reName.FindSubmatch(chanConfig)
-	if len(nameMatches) > 1 {
-		status.Name = string(nameMatches[1])
+	return common.ChannelStatus{
+		Name:    cfg.Name,
+		Channel: channel,
+		Active:  poeOn,
+		Error:   "",
 	}
-
-	return status
 }
 
 // Set updates the channel IP addresses on a specified channel with a provided bool value
 func (h *channelsHandler) Set(channel string, active bool) error {
-	cfg, found := h.channelsAsMap[channel]
-	if !found {
+	cfg, ok := h.channelsAsMap[channel]
+	if !ok {
 		return fmt.Errorf("channel %s not found", channel)
 	}
 
-	chanConfig, err := h.hikHandler.GetChannelConfig(channel)
-	if err != nil {
-		return err
-	}
-
-	newIP := cfg.NOKIPAddress
-	if active {
-		newIP = cfg.OkIPAddress
-	}
-
-	reIP := regexp.MustCompile(`<ipAddress>.*?</ipAddress>`)
-	newConfig := reIP.ReplaceAll(chanConfig, []byte(fmt.Sprintf("<ipAddress>%s</ipAddress>", newIP)))
-
-	if string(newConfig) == string(chanConfig) {
-		return errors.New("could not find <ipAddress> tag to replace")
-	}
-
-	return h.hikHandler.UpdateChannelConfig(channel, newConfig)
+	return h.unifiClient.SetPoeMode(cfg.SwitchMAC, cfg.Port, active)
 }
