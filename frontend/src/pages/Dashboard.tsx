@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, Video, AlertCircle, X, Loader2, RefreshCw } from 'lucide-react';
-import { getChannels, getChannelStatus, setChannelStatus } from '../api';
+import { getChannels, getChannelStatus, setChannelStatus, getAppInfo } from '../api';
 
 interface ChannelStatus {
   name: string;
@@ -25,6 +25,7 @@ export const Dashboard: React.FC = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedError, setSelectedError] = useState('');
   const [selectedChannelId, setSelectedChannelId] = useState('');
+  const [appVersion, setAppVersion] = useState('');
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
   useEffect(() => {
@@ -101,6 +102,10 @@ export const Dashboard: React.FC = () => {
 
     return () => clearInterval(interval);
   }, [token]);
+
+  useEffect(() => {
+    getAppInfo().then(data => setAppVersion(data.version)).catch(console.error);
+  }, []);
 
   // Small helper to avoid shadowed variable issues in closure
   const silentAutoRefresh = true;
@@ -288,6 +293,12 @@ export const Dashboard: React.FC = () => {
           ))
         )}
       </main>
+
+      <footer style={{ marginTop: 'auto', paddingTop: '40px', paddingBottom: '16px', textAlign: 'center' }}>
+        <p style={{ color: 'var(--text-muted)', fontSize: '11px', opacity: 0.6, letterSpacing: '0.5px' }}>
+          {appVersion ? `Unifi Control Service v${appVersion}` : 'Unifi Control Service'}
+        </p>
+      </footer>
 
       {/* Error Details Modal */}
       {modalVisible && (
