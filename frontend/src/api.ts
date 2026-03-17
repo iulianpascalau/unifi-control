@@ -7,11 +7,14 @@ const getApiBaseUrl = () => {
     return import.meta.env.VITE_API_URL;
   }
   
-  // If we are running in a browser, try to guess the backend location
   if (typeof window !== 'undefined') {
-    const { protocol, hostname } = window.location;
-    // Common development pattern: backend on 8080
-    return `${protocol}//${hostname}:8080`;
+    const { hostname } = window.location;
+    // Local development: always use http://localhost:8080
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'http://localhost:8080';
+    }
+    // Production: use same origin (protocol, host, port) which handles proxies & SSL correctly
+    return window.location.origin;
   }
   
   return 'http://localhost:8080';

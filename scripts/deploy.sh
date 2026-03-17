@@ -4,7 +4,6 @@ set -e
 # Configuration
 PROJECT_DIR="/home/ubuntu/unifi-control"
 BACKEND_SERVICE="unifi-control-backend"
-FRONTEND_SERVICE="unifi-control-frontend"
 
 # Check argument
 VERSION_ARG=$1
@@ -40,7 +39,7 @@ echo "=========================================="
 
 # 1. Stop Services
 echo "Step 1: Stopping services..."
-sudo systemctl stop $FRONTEND_SERVICE $BACKEND_SERVICE || echo "Services not found or not running, skipping stop."
+sudo systemctl stop $BACKEND_SERVICE || echo "Backend service not found or not running, skipping stop."
 
 # 2. Checkout Code
 echo "Step 2: Checking out code..."
@@ -67,13 +66,18 @@ fi
 echo "Backend build successful."
 
 # 4. Update Frontend
-echo "Step 4: Updating Frontend..."
+echo "Step 4: Building Frontend for Production..."
 ensure_node_yarn_installed
 cd frontend
 # Install dependencies
 npm install
-# Note: The service currently runs 'npm run dev', so we don't 'build' for production serving yet.
-# If you switch to 'npm run build', add it here.
+# Run production build
+npm run build
+if [ ! -d "dist" ]; then
+    echo "Frontend build failed! 'dist' directory not found."
+    exit 1
+fi
+echo "Frontend production build successful."
 cd ..
 
 # 5. Restart Services
@@ -88,15 +92,6 @@ else
     "$PROJECT_DIR/scripts/create_backend_service.sh"
 fi
 
-# Frontend
-if systemctl cat $FRONTEND_SERVICE > /dev/null 2>&1; then
-    sudo systemctl start $FRONTEND_SERVICE
-else
-    echo "Service $FRONTEND_SERVICE not found. Creating it..."
-    chmod +x "$PROJECT_DIR/scripts/create_frontend_service.sh"
-    "$PROJECT_DIR/scripts/create_frontend_service.sh"
-fi
-
 # 6. Monitor
 echo "Step 6: Monitoring status..."
 sleep 5
@@ -106,14 +101,6 @@ if systemctl is-active --quiet $BACKEND_SERVICE; then
 else
     echo "❌ $BACKEND_SERVICE failed to start."
     sudo journalctl -u $BACKEND_SERVICE -n 20 --no-pager
-    exit 1
-fi
-
-if systemctl is-active --quiet $FRONTEND_SERVICE; then
-    echo "✅ $FRONTEND_SERVICE is active."
-else
-    echo "❌ $FRONTEND_SERVICE failed to start."
-    sudo journalctl -u $FRONTEND_SERVICE -n 20 --no-pager
     exit 1
 fi
 
