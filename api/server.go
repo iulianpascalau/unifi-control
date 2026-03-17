@@ -18,6 +18,7 @@ type API struct {
 	jwtKey          []byte
 	httpServer      *http.Server
 	appVersion      string
+	frontendPath    string
 }
 
 type loginRequest struct {
@@ -30,7 +31,7 @@ type setChannelRequest struct {
 }
 
 // NewAPI creates a new gin REST API instance
-func NewAPI(ch ChannelStatusProvider, username, password string, jwtKey []byte, appVersion string) *API {
+func NewAPI(ch ChannelStatusProvider, username, password string, jwtKey []byte, appVersion string, frontendPath string) *API {
 	r := gin.Default()
 
 	api := &API{
@@ -40,6 +41,7 @@ func NewAPI(ch ChannelStatusProvider, username, password string, jwtKey []byte, 
 		password:        password,
 		jwtKey:          jwtKey,
 		appVersion:      appVersion,
+		frontendPath:    frontendPath,
 	}
 
 	api.setupRoutes()
@@ -78,6 +80,19 @@ func (a *API) setupRoutes() {
 		protected.GET("/channels", a.getChannels)
 		protected.GET("/channels/:id", a.getChannelStatus)
 		protected.POST("/channels/:id", a.setChannelStatus)
+	}
+
+	// Static files serving and React Router fallback
+	if a.frontendPath != "" {
+		// Serve static files (assets, etc.)
+		a.router.Static("/assets", fmt.Sprintf("%s/assets", a.frontendPath))
+		a.router.StaticFile("/favicon.png", fmt.Sprintf("%s/favicon.png", a.frontendPath))
+		a.router.StaticFile("/vite.svg", fmt.Sprintf("%s/vite.svg", a.frontendPath))
+
+		// Fallback for SPA (React Router)
+		a.router.NoRoute(func(c *gin.Context) {
+			c.File(fmt.Sprintf("%s/index.html", a.frontendPath))
+		})
 	}
 }
 

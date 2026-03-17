@@ -1,4 +1,5 @@
 ListenAddress = "0.0.0.0:8080"
+FrontendPath = "frontend/dist"
 
 [[Ports]]
 	Name = "Cam Inside"

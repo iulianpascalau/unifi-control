@@ -16,6 +16,7 @@ type PortConfig struct {
 
 type Config struct {
 	ListenAddress string       `toml:"ListenAddress"`
+	FrontendPath  string       `toml:"FrontendPath"`
 	Ports         []PortConfig `toml:"Ports"`
 }
 

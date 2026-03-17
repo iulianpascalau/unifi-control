@@ -12,6 +12,7 @@ func TestConfig(t *testing.T) {
 
 	testString := `
 ListenAddress = "0.0.0.0:8080"
+FrontendPath = "frontend/dist"
 
 [[Ports]]
 	Name = "Camera 0"
@@ -28,6 +29,7 @@ ListenAddress = "0.0.0.0:8080"
 
 	expectedCfg := Config{
 		ListenAddress: "0.0.0.0:8080",
+		FrontendPath:  "frontend/dist",
 		Ports: []PortConfig{
 			{
 				Name:       "Camera 0",

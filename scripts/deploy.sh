@@ -67,13 +67,18 @@ fi
 echo "Backend build successful."
 
 # 4. Update Frontend
-echo "Step 4: Updating Frontend..."
+echo "Step 4: Building Frontend for Production..."
 ensure_node_yarn_installed
 cd frontend
 # Install dependencies
 npm install
-# Note: The service currently runs 'npm run dev', so we don't 'build' for production serving yet.
-# If you switch to 'npm run build', add it here.
+# Run production build
+npm run build
+if [ ! -d "dist" ]; then
+    echo "Frontend build failed! 'dist' directory not found."
+    exit 1
+fi
+echo "Frontend production build successful."
 cd ..
 
 # 5. Restart Services
