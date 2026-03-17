@@ -11,6 +11,8 @@ interface ChannelStatus {
   poe_current?: string;
   poe_voltage?: string;
   poe_class?: string;
+  switch_name?: string;
+  port_idx?: number;
   error?: string;
 }
 
@@ -64,6 +66,8 @@ export const Dashboard: React.FC = () => {
             poe_current: data.poe_current,
             poe_voltage: data.poe_voltage,
             poe_class: data.poe_class,
+            switch_name: data.switch_name,
+            port_idx: data.port_idx,
             error: data.error && data.error !== "" ? data.error : undefined
           }))
           .catch(err => ({ 
@@ -188,9 +192,28 @@ export const Dashboard: React.FC = () => {
                   </div>
                   <div>
                     <h2 style={{ fontSize: '20px', fontWeight: 700, margin: 0 }}>{ch.name}</h2>
-                    <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                      Channel ID: {ch.channel}
-                    </p>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '6px' }}>
+                      {ch.switch_name && (
+                        <span style={{ 
+                          fontSize: '11px', color: 'var(--text-muted)', 
+                          background: 'rgba(255,255,255,0.05)', 
+                          padding: '2px 8px', borderRadius: '4px',
+                          border: '1px solid rgba(255,255,255,0.1)'
+                        }}>
+                          Switch: {ch.switch_name}
+                        </span>
+                      )}
+                      {ch.port_idx !== undefined && (
+                        <span style={{ 
+                          fontSize: '11px', color: 'var(--primary)', 
+                          background: 'rgba(0, 210, 255, 0.05)', 
+                          padding: '2px 8px', borderRadius: '4px',
+                          border: '1px solid rgba(0, 210, 255, 0.1)'
+                        }}>
+                          Port: {ch.port_idx}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 

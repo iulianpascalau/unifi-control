@@ -8,6 +8,9 @@ type PortStatus struct {
 	PoeCurrent string `json:"poe_current,omitempty"`
 	PoeVoltage string `json:"poe_voltage,omitempty"`
 	PoeClass   string `json:"poe_class,omitempty"`
+	SwitchMAC  string `json:"switch_mac,omitempty"`
+	SwitchName string `json:"switch_name,omitempty"`
+	PortIdx    int    `json:"port_idx,omitempty"`
 	Error      string `json:"error"`
 }
 
@@ -33,6 +36,7 @@ type UnifiDeviceResponse struct {
 
 type UnifiDeviceData struct {
 	MAC           string                   `json:"mac"`
+	Name          string                   `json:"name"`
 	DeviceID      string                   `json:"_id"`
 	PortOverrides []map[string]interface{} `json:"port_overrides"`
 	PortTable     []UnifiPortStatus        `json:"port_table"`

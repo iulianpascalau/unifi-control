@@ -60,7 +60,7 @@ func (h *channelsHandler) GetPort(portID string) common.PortStatus {
 		}
 	}
 
-	switchMAC, portIdx, err := h.resolveCameraLocation(cfg)
+	switchMAC, switchName, portIdx, err := h.resolveCameraLocation(cfg)
 	if err != nil {
 		return common.PortStatus{
 			Name:   cfg.Name,
@@ -90,6 +90,9 @@ func (h *channelsHandler) GetPort(portID string) common.PortStatus {
 				PoeCurrent: port.PoeCurrent,
 				PoeVoltage: port.PoeVoltage,
 				PoeClass:   port.PoeClass,
+				SwitchMAC:  switchMAC,
+				SwitchName: switchName,
+				PortIdx:    portIdx,
 				Error:      "",
 			}
 		}
@@ -110,7 +113,7 @@ func (h *channelsHandler) Set(portID string, active bool) error {
 		return fmt.Errorf("port %s not found", portID)
 	}
 
-	switchMAC, portIdx, err := h.resolveCameraLocation(cfg)
+	switchMAC, _, portIdx, err := h.resolveCameraLocation(cfg)
 	if err != nil {
 		return err
 	}
@@ -118,23 +121,27 @@ func (h *channelsHandler) Set(portID string, active bool) error {
 	return h.unifiClient.SetPoeMode(switchMAC, portIdx, active)
 }
 
-func (h *channelsHandler) resolveCameraLocation(cfg config.PortConfig) (string, int, error) {
+func (h *channelsHandler) resolveCameraLocation(cfg config.PortConfig) (string, string, int, error) {
 	if cfg.CameraMAC == "" {
-		return cfg.SwitchMAC, cfg.SwitchPort, nil
+		return cfg.SwitchMAC, "Static", cfg.SwitchPort, nil
 	}
 
 	devices, err := h.unifiClient.GetAllDevices()
 	if err != nil {
-		return "", 0, fmt.Errorf("failed to fetch devices for discovery: %w", err)
+		return "", "", 0, fmt.Errorf("failed to fetch devices for discovery: %w", err)
 	}
 
 	for _, dev := range devices {
 		for _, port := range dev.PortTable {
 			if port.LastConnection.MAC == cfg.CameraMAC {
-				return dev.MAC, port.PortIdx, nil
+				name := dev.Name
+				if name == "" {
+					name = dev.MAC
+				}
+				return dev.MAC, name, port.PortIdx, nil
 			}
 		}
 	}
 
-	return "", 0, fmt.Errorf("camera with MAC %s not found on any switch port", cfg.CameraMAC)
+	return "", "", 0, fmt.Errorf("camera with MAC %s not found on any switch port", cfg.CameraMAC)
 }
