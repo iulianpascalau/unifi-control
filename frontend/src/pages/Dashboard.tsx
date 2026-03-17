@@ -17,7 +17,8 @@ interface ChannelStatus {
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [channels, setChannels] = useState<ChannelStatus[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedError, setSelectedError] = useState('');
@@ -44,7 +45,13 @@ export const Dashboard: React.FC = () => {
     }
 
     try {
-      if (!silent) setIsLoading(true);
+      if (!silent) {
+        if (channels.length === 0) setIsInitialLoading(true);
+        else setIsRefreshing(true);
+      } else {
+        setIsRefreshing(true);
+      }
+
       const channelIds = await getChannels(token);
       
       const promises = channelIds.map((id: string) => 
@@ -75,7 +82,8 @@ export const Dashboard: React.FC = () => {
         handleLogout();
       }
     } finally {
-      setIsLoading(false);
+      setIsInitialLoading(false);
+      setIsRefreshing(false);
     }
   };
 
@@ -121,7 +129,7 @@ export const Dashboard: React.FC = () => {
     setModalVisible(true);
   };
 
-  if (isLoading) {
+  if (isInitialLoading) {
     return (
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
          <Loader2 size={48} color="var(--primary)" className="animate-spin" />
@@ -338,7 +346,7 @@ export const Dashboard: React.FC = () => {
         }}
         title="Refresh Status"
       >
-        <RefreshCw size={windowWidth < 640 ? 20 : 28} className={isLoading ? "animate-spin" : ""} />
+        <RefreshCw size={windowWidth < 640 ? 20 : 28} className={isRefreshing ? "animate-spin" : ""} />
       </button>
 
     </div>
