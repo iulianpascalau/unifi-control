@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, Video, AlertCircle, X, Loader2, RefreshCw } from 'lucide-react';
-import { getChannels, getChannelStatus, setChannelStatus } from '../api';
+import { getChannels, getChannelStatus, setChannelStatus, getAppInfo } from '../api';
 
 interface ChannelStatus {
   name: string;
@@ -11,17 +11,21 @@ interface ChannelStatus {
   poe_current?: string;
   poe_voltage?: string;
   poe_class?: string;
+  switch_name?: string;
+  port_idx?: number;
   error?: string;
 }
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [channels, setChannels] = useState<ChannelStatus[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedError, setSelectedError] = useState('');
   const [selectedChannelId, setSelectedChannelId] = useState('');
+  const [appVersion, setAppVersion] = useState('');
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
   useEffect(() => {
@@ -44,7 +48,13 @@ export const Dashboard: React.FC = () => {
     }
 
     try {
-      if (!silent) setIsLoading(true);
+      if (!silent) {
+        if (channels.length === 0) setIsInitialLoading(true);
+        else setIsRefreshing(true);
+      } else {
+        setIsRefreshing(true);
+      }
+
       const channelIds = await getChannels(token);
       
       const promises = channelIds.map((id: string) => 
@@ -57,6 +67,8 @@ export const Dashboard: React.FC = () => {
             poe_current: data.poe_current,
             poe_voltage: data.poe_voltage,
             poe_class: data.poe_class,
+            switch_name: data.switch_name,
+            port_idx: data.port_idx,
             error: data.error && data.error !== "" ? data.error : undefined
           }))
           .catch(err => ({ 
@@ -75,7 +87,8 @@ export const Dashboard: React.FC = () => {
         handleLogout();
       }
     } finally {
-      setIsLoading(false);
+      setIsInitialLoading(false);
+      setIsRefreshing(false);
     }
   };
 
@@ -89,6 +102,10 @@ export const Dashboard: React.FC = () => {
 
     return () => clearInterval(interval);
   }, [token]);
+
+  useEffect(() => {
+    getAppInfo().then(data => setAppVersion(data.version)).catch(console.error);
+  }, []);
 
   // Small helper to avoid shadowed variable issues in closure
   const silentAutoRefresh = true;
@@ -121,7 +138,7 @@ export const Dashboard: React.FC = () => {
     setModalVisible(true);
   };
 
-  if (isLoading) {
+  if (isInitialLoading) {
     return (
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
          <Loader2 size={48} color="var(--primary)" className="animate-spin" />
@@ -180,9 +197,28 @@ export const Dashboard: React.FC = () => {
                   </div>
                   <div>
                     <h2 style={{ fontSize: '20px', fontWeight: 700, margin: 0 }}>{ch.name}</h2>
-                    <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                      Channel ID: {ch.channel}
-                    </p>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '6px' }}>
+                      {ch.switch_name && (
+                        <span style={{ 
+                          fontSize: '11px', color: 'var(--text-muted)', 
+                          background: 'rgba(255,255,255,0.05)', 
+                          padding: '2px 8px', borderRadius: '4px',
+                          border: '1px solid rgba(255,255,255,0.1)'
+                        }}>
+                          Switch: {ch.switch_name}
+                        </span>
+                      )}
+                      {ch.port_idx !== undefined && (
+                        <span style={{ 
+                          fontSize: '11px', color: 'var(--primary)', 
+                          background: 'rgba(0, 210, 255, 0.05)', 
+                          padding: '2px 8px', borderRadius: '4px',
+                          border: '1px solid rgba(0, 210, 255, 0.1)'
+                        }}>
+                          Port: {ch.port_idx}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -257,6 +293,12 @@ export const Dashboard: React.FC = () => {
           ))
         )}
       </main>
+
+      <footer style={{ marginTop: 'auto', paddingTop: '40px', paddingBottom: '16px', textAlign: 'center' }}>
+        <p style={{ color: 'var(--text-muted)', fontSize: '11px', opacity: 0.6, letterSpacing: '0.5px' }}>
+          {appVersion ? `Unifi Control Service v${appVersion}` : 'Unifi Control Service'}
+        </p>
+      </footer>
 
       {/* Error Details Modal */}
       {modalVisible && (
@@ -338,7 +380,7 @@ export const Dashboard: React.FC = () => {
         }}
         title="Refresh Status"
       >
-        <RefreshCw size={windowWidth < 640 ? 20 : 28} className={isLoading ? "animate-spin" : ""} />
+        <RefreshCw size={windowWidth < 640 ? 20 : 28} className={isRefreshing ? "animate-spin" : ""} />
       </button>
 
     </div>

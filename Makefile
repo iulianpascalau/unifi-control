@@ -2,7 +2,7 @@ SHELL := $(shell which bash)
 
 .DEFAULT_GOAL := help
 
-.PHONY: clean-test test build run-backend run-frontend run-solution
+.PHONY: clean-test test build run-backend run-frontend install-frontend run-solution
 
 help:
 	@echo -e ""
@@ -20,7 +20,7 @@ clean-tests:
 tests: clean-tests
 	go test ./...
 
-build: /
+build:
 	go build -v -ldflags="-X main.appVersion=$(shell git describe --tags --long --dirty) -X main.commitID=$(shell git rev-parse HEAD)"
 
 lint-install:
@@ -33,7 +33,13 @@ run-lint:
 	@echo "Running golint"
 	bin/golangci-lint run --max-issues-per-linter 0 --max-same-issues 0 --timeout=2m
 
-run-frontend:
+install-frontend:
+	cd frontend && \
+	export NVM_DIR="$$HOME/.nvm" && \
+	[ -s "$$NVM_DIR/nvm.sh" ] && \. "$$NVM_DIR/nvm.sh" && \
+	nvm exec 22.12.0 npm install
+
+run-frontend: install-frontend
 	cd frontend && \
 	export NVM_DIR="$$HOME/.nvm" && \
 	[ -s "$$NVM_DIR/nvm.sh" ] && \. "$$NVM_DIR/nvm.sh" && \

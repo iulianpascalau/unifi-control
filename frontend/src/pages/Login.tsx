@@ -1,15 +1,20 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield } from 'lucide-react';
-import { login } from '../api';
+import { Shield, Github } from 'lucide-react';
+import { login, getAppInfo } from '../api';
 
 export const Login: React.FC = () => {
   const [username, setUsername] = useState('admin');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [appVersion, setAppVersion] = useState('');
   
   const navigate = useNavigate();
+
+  React.useEffect(() => {
+    getAppInfo().then(data => setAppVersion(data.version)).catch(console.error);
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,6 +79,30 @@ export const Login: React.FC = () => {
             {isLoading ? 'Authenticating...' : 'Authenticate'}
           </button>
         </form>
+
+        <div style={{ textAlign: 'center', marginTop: '32px', color: 'var(--text-muted)', fontSize: '13px' }} className="animate-fade-in">
+          {appVersion && <p style={{ opacity: 0.8, letterSpacing: '0.5px' }}>Version: {appVersion}</p>}
+          <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'center', gap: '24px' }}>
+            <a 
+              href="https://github.com/iulianpascalau/unifi-control" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              style={{ 
+                color: 'var(--primary)', 
+                textDecoration: 'none', 
+                fontWeight: 600, 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '8px',
+                transition: 'opacity 0.2s'
+              }}
+              onMouseOver={(e) => e.currentTarget.style.opacity = '0.7'}
+              onMouseOut={(e) => e.currentTarget.style.opacity = '1'}
+            >
+              <Github size={16} /> Solution
+            </a>
+          </div>
+        </div>
 
       </main>
     </div>

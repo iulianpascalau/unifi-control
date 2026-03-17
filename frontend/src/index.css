@@ -22,12 +22,18 @@
   font-family: 'Inter', sans-serif;
 }
 
+html {
+  scroll-behavior: smooth;
+  height: 100%;
+}
+
 body {
   background: var(--bg-gradient);
   color: var(--text-main);
-  min-height: 100vh;
+  min-height: 100%;
   margin: 0;
   background-attachment: fixed;
+  -webkit-overflow-scrolling: touch;
 }
 
 #root {

@@ -17,6 +17,7 @@ type API struct {
 	password        string
 	jwtKey          []byte
 	httpServer      *http.Server
+	appVersion      string
 }
 
 type loginRequest struct {
@@ -29,7 +30,7 @@ type setChannelRequest struct {
 }
 
 // NewAPI creates a new gin REST API instance
-func NewAPI(ch ChannelStatusProvider, username, password string, jwtKey []byte) *API {
+func NewAPI(ch ChannelStatusProvider, username, password string, jwtKey []byte, appVersion string) *API {
 	r := gin.Default()
 
 	api := &API{
@@ -38,6 +39,7 @@ func NewAPI(ch ChannelStatusProvider, username, password string, jwtKey []byte) 
 		username:        username,
 		password:        password,
 		jwtKey:          jwtKey,
+		appVersion:      appVersion,
 	}
 
 	api.setupRoutes()
@@ -67,6 +69,7 @@ func (a *API) setupRoutes() {
 
 	// Public routes
 	a.router.POST("/login", a.login)
+	a.router.GET("/api/app-info", a.getAppInfo)
 
 	// Protected routes
 	protected := a.router.Group("/api")
@@ -173,4 +176,9 @@ func (a *API) setChannelStatus(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"status": "success", "channel": channelID, "active": req.Active})
+}
+func (a *API) getAppInfo(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"version": a.appVersion,
+	})
 }

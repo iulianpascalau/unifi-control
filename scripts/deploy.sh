@@ -40,12 +40,13 @@ echo "Step 3: Recompiling Backend..."
 # Load common functions
 source ./scripts/common.sh
 
+#Ensure build tools are installed
+ensure_tools_installed
 # Ensure Go is installed
 ensure_go_installed
 GO_CMD="go"
 
-cd ./services/proxy
-$GO_CMD build -v -ldflags="-X main.appVersion=$(git describe --tags --long --dirty)" -o epoch-proxy-server main.go
+$GO_CMD build -v -ldflags="-X main.appVersion=$(git describe --tags --long --dirty)" -o unifi-control main.go
 if [ $? -ne 0 ]; then
     echo "Backend build failed!"
     exit 1
@@ -54,7 +55,8 @@ echo "Backend build successful."
 
 # 4. Update Frontend
 echo "Step 4: Updating Frontend..."
-cd ../../frontend
+ensure_node_yarn_installed
+cd frontend
 # Install dependencies
 npm install
 # Note: The service currently runs 'npm run dev', so we don't 'build' for production serving yet.

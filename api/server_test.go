@@ -43,7 +43,7 @@ func (m *MockChannelStatusProvider) Set(channel string, active bool) error {
 func setupTestRouter(username, password string) (*API, *MockChannelStatusProvider) {
 	gin.SetMode(gin.TestMode)
 	mockProvider := new(MockChannelStatusProvider)
-	api := NewAPI(mockProvider, username, password, testJWTKey)
+	api := NewAPI(mockProvider, username, password, testJWTKey, "test-version")
 	return api, mockProvider
 }
 

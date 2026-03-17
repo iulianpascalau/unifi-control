@@ -174,6 +174,7 @@ func run(ctx *cli.Context) error {
 		envFileContents[common.EnvAuthUser],
 		envFileContents[common.EnvAuthPass],
 		[]byte(envFileContents[common.EnvJWTKey]),
+		appVersion,
 	)
 
 	go func() {

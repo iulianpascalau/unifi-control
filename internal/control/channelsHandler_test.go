@@ -147,11 +147,14 @@ func TestChannelsHandler_GetPort(t *testing.T) {
 		})
 
 		expectedStatus := common.PortStatus{
-			Name:     "Port 1",
-			PortID:   "0",
-			Active:   true,
-			PoePower: "5.0",
-			Error:    "",
+			Name:       "Port 1",
+			PortID:     "0",
+			Active:     true,
+			PoePower:   "5.0",
+			Error:      "",
+			SwitchMAC:  "mac1",
+			SwitchName: "Static",
+			PortIdx:    1,
 		}
 
 		status := handler.GetPort("0")

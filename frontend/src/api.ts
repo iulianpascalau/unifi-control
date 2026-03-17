@@ -53,3 +53,8 @@ export const setChannelStatus = async (token: string, channelId: string, active:
   });
   return response.data;
 };
+
+export const getAppInfo = async (): Promise<{ version: string }> => {
+  const response = await axios.get(`${API_BASE_URL}/api/app-info`);
+  return response.data;
+};
