@@ -40,12 +40,6 @@ echo "=========================================="
 # 1. Stop Services
 echo "Step 1: Stopping services..."
 sudo systemctl stop $BACKEND_SERVICE || echo "Backend service not found or not running, skipping stop."
-# Clean up old frontend service if it exists
-if systemctl list-unit-files | grep -q "^unifi-control-frontend.service"; then
-    echo "Found legacy frontend service. Disabling and stopping..."
-    sudo systemctl stop unifi-control-frontend || true
-    sudo systemctl disable unifi-control-frontend || true
-fi
 
 # 2. Checkout Code
 echo "Step 2: Checking out code..."
