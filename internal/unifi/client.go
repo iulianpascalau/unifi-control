@@ -158,11 +158,7 @@ func (c *client) SetPoeMode(switchMAC string, portIdx int, on bool) error {
 }
 
 func (c *client) updateDevice(deviceID string, overrides []map[string]interface{}) error {
-	c.tokenMutex.Lock()
-	prefix := c.apiPrefix
-	c.tokenMutex.Unlock()
-
-	updateURL := fmt.Sprintf("%s%s/api/s/%s/rest/device/%s", c.url, prefix, c.site, deviceID)
+	updateURL := fmt.Sprintf("%s%s/api/s/%s/rest/device/%s", c.url, c.getApiPrefix(), c.site, deviceID)
 	payload, _ := json.Marshal(map[string]interface{}{
 		"port_overrides": overrides,
 	})
@@ -226,7 +222,7 @@ func (c *client) GetAllDevices() ([]common.UnifiDeviceData, error) {
 	}
 
 	// First request attempt
-	devices, err := c.doGetAllDevices("")
+	devices, err := c.doGetAllDevices(c.getApiPrefix())
 	if err == nil {
 		return devices, nil
 	}
