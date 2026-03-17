@@ -52,8 +52,8 @@ func TestClient_GetDeviceInfo(t *testing.T) {
 				{
 					MAC:      mac,
 					DeviceID: "device123",
-					PortOverrides: []common.UnifiPortOverride{
-						{PortIdx: 1, PoeMode: "auto"},
+					PortOverrides: []map[string]interface{}{
+						{"port_idx": float64(1), "poe_mode": "auto"},
 					},
 					PortTable: []common.UnifiPortStatus{
 						{PortIdx: 1, PoeMode: "auto"},
@@ -72,7 +72,7 @@ func TestClient_GetDeviceInfo(t *testing.T) {
 	assert.Equal(t, mac, info.MAC)
 	assert.Equal(t, "device123", info.DeviceID)
 	assert.Len(t, info.PortOverrides, 1)
-	assert.Equal(t, "auto", info.PortOverrides[0].PoeMode)
+	assert.Equal(t, "auto", info.PortOverrides[0]["poe_mode"])
 }
 
 func TestClient_SetPoeMode(t *testing.T) {
@@ -92,7 +92,7 @@ func TestClient_SetPoeMode(t *testing.T) {
 					{
 						MAC:           mac,
 						DeviceID:      "device123",
-						PortOverrides: []common.UnifiPortOverride{},
+						PortOverrides: []map[string]interface{}{},
 					},
 				},
 			}

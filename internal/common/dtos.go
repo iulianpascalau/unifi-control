@@ -11,11 +11,6 @@ type PortStatus struct {
 	Error      string `json:"error"`
 }
 
-type UnifiPortOverride struct {
-	PortIdx int    `json:"port_idx"`
-	PoeMode string `json:"poe_mode"` // "auto" or "off"
-}
-
 type UnifiPortStatus struct {
 	PortIdx    int    `json:"port_idx"`
 	Up         bool   `json:"up"`
@@ -31,8 +26,8 @@ type UnifiDeviceResponse struct {
 }
 
 type UnifiDeviceData struct {
-	MAC           string              `json:"mac"`
-	DeviceID      string              `json:"_id"`
-	PortOverrides []UnifiPortOverride `json:"port_overrides"`
-	PortTable     []UnifiPortStatus   `json:"port_table"`
+	MAC           string                   `json:"mac"`
+	DeviceID      string                   `json:"_id"`
+	PortOverrides []map[string]interface{} `json:"port_overrides"`
+	PortTable     []UnifiPortStatus        `json:"port_table"`
 }

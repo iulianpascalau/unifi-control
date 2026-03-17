@@ -112,20 +112,23 @@ func (c *client) SetPoeMode(switchMAC string, portIdx int, on bool) error {
 	}
 
 	// 3. Update port_overrides
-	updatedOverrides := make([]common.UnifiPortOverride, 0)
+	updatedOverrides := make([]map[string]interface{}, 0)
 	found := false
 	for _, po := range device.PortOverrides {
-		if po.PortIdx == portIdx {
-			po.PoeMode = newMode
+		// When unmarshaling JSON into interface{}, numbers become float64.
+		idx, ok := po["port_idx"].(float64)
+		if ok && int(idx) == portIdx {
+			po["poe_mode"] = newMode
 			found = true
 		}
 		updatedOverrides = append(updatedOverrides, po)
 	}
 
 	if !found {
-		updatedOverrides = append(updatedOverrides, common.UnifiPortOverride{
-			PortIdx: portIdx,
-			PoeMode: newMode,
+		updatedOverrides = append(updatedOverrides, map[string]interface{}{
+			"port_idx":           portIdx,
+			"poe_mode":           newMode,
+			"setting_preference": "auto", // Required by newer firmware for manual overrides
 		})
 	}
 
@@ -133,7 +136,7 @@ func (c *client) SetPoeMode(switchMAC string, portIdx int, on bool) error {
 	return c.updateDevice(device.DeviceID, updatedOverrides)
 }
 
-func (c *client) updateDevice(deviceID string, overrides []common.UnifiPortOverride) error {
+func (c *client) updateDevice(deviceID string, overrides []map[string]interface{}) error {
 	updateURL := fmt.Sprintf("%s%s/api/s/%s/rest/device/%s", c.url, c.apiPrefix, c.site, deviceID)
 	payload, _ := json.Marshal(map[string]interface{}{
 		"port_overrides": overrides,
