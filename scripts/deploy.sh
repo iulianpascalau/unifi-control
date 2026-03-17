@@ -40,6 +40,8 @@ echo "Step 3: Recompiling Backend..."
 # Load common functions
 source ./scripts/common.sh
 
+#Ensure build tools are installed
+ensure_tools_installed
 # Ensure Go is installed
 ensure_go_installed
 GO_CMD="go"
@@ -53,6 +55,7 @@ echo "Backend build successful."
 
 # 4. Update Frontend
 echo "Step 4: Updating Frontend..."
+ensure_node_yarn_installed
 cd frontend
 # Install dependencies
 npm install
