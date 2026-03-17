@@ -1,8 +1,38 @@
 package common
 
-type ChannelStatus struct {
-	Name    string `json:"name"`
-	Channel string `json:"channel"`
-	Active  bool   `json:"status"`
-	Error   string `json:"error"`
+type PortStatus struct {
+	Name       string `json:"name"`
+	PortID     string `json:"port-id"`
+	Active     bool   `json:"status"`
+	PoePower   string `json:"poe_power,omitempty"`
+	PoeCurrent string `json:"poe_current,omitempty"`
+	PoeVoltage string `json:"poe_voltage,omitempty"`
+	PoeClass   string `json:"poe_class,omitempty"`
+	Error      string `json:"error"`
+}
+
+type UnifiPortOverride struct {
+	PortIdx int    `json:"port_idx"`
+	PoeMode string `json:"poe_mode"` // "auto" or "off"
+}
+
+type UnifiPortStatus struct {
+	PortIdx    int    `json:"port_idx"`
+	Up         bool   `json:"up"`
+	PoeMode    string `json:"poe_mode"`
+	PoePower   string `json:"poe_power"`
+	PoeCurrent string `json:"poe_current"`
+	PoeVoltage string `json:"poe_voltage"`
+	PoeClass   string `json:"poe_class"`
+}
+
+type UnifiDeviceResponse struct {
+	Data []UnifiDeviceData `json:"data"`
+}
+
+type UnifiDeviceData struct {
+	MAC           string              `json:"mac"`
+	DeviceID      string              `json:"_id"`
+	PortOverrides []UnifiPortOverride `json:"port_overrides"`
+	PortTable     []UnifiPortStatus   `json:"port_table"`
 }

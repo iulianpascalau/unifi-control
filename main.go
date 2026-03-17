@@ -14,7 +14,6 @@ import (
 	"hikvision-control/internal/common"
 	"hikvision-control/internal/config"
 	"hikvision-control/internal/control"
-	"hikvision-control/internal/hikvision"
 	"hikvision-control/internal/unifi" // Added for UniFi client
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -78,17 +77,13 @@ VERSION:
 	}
 
 	envFileContents = map[string]string{
-		common.EnvUser:       "",
-		common.EnvPass:       "",
-		common.EnvIP:         "",
-		common.EnvAuthUser:   "",
-		common.EnvAuthPass:   "",
-		common.EnvJWTKey:     "",
-		common.EnvCameraPass: "",
-		common.EnvUnifiUser:  "",
-		common.EnvUnifiPass:  "",
-		common.EnvUnifiURL:   "",
-		common.EnvUnifiSite:  "",
+		common.EnvAuthUser:  "",
+		common.EnvAuthPass:  "",
+		common.EnvJWTKey:    "",
+		common.EnvUnifiUser: "",
+		common.EnvUnifiPass: "",
+		common.EnvUnifiURL:  "",
+		common.EnvUnifiSite: "",
 	}
 
 	log = logger.GetOrCreate("hikvision-control")
@@ -169,8 +164,7 @@ func run(ctx *cli.Context) error {
 		envFileContents[common.EnvUnifiSite],
 	)
 
-	client := hikvision.NewClient(envFileContents[common.EnvIP], envFileContents[common.EnvUser], envFileContents[common.EnvPass])
-	handler, err := control.NewChannelsHandler(*cfg, unifiClient, client)
+	handler, err := control.NewChannelsHandler(*cfg, unifiClient)
 	if err != nil {
 		return err
 	}

@@ -7,6 +7,10 @@ interface ChannelStatus {
   name: string;
   channel: string;
   status: boolean;
+  poe_power?: string;
+  poe_current?: string;
+  poe_voltage?: string;
+  poe_class?: string;
   error?: string;
 }
 
@@ -42,6 +46,10 @@ export const Dashboard: React.FC = () => {
             channel: id,
             name: data.name || `Channel ${id}`,
             status: data.status,
+            poe_power: data.poe_power,
+            poe_current: data.poe_current,
+            poe_voltage: data.poe_voltage,
+            poe_class: data.poe_class,
             error: data.error && data.error !== "" ? data.error : undefined
           }))
           .catch(err => ({ 
@@ -183,6 +191,33 @@ export const Dashboard: React.FC = () => {
                   </div>
                 </label>
               </div>
+
+              {/* Stats Section */}
+              {ch.status && ch.poe_power && (
+                <div style={{ 
+                  display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', 
+                  gap: '12px', background: 'rgba(255, 255, 255, 0.03)', 
+                  padding: '16px', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.05)',
+                  marginTop: '4px'
+                }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Power</span>
+                    <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--primary)' }}>{ch.poe_power} W</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Voltage</span>
+                    <span style={{ fontSize: '16px', fontWeight: 600 }}>{ch.poe_voltage} V</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Current</span>
+                    <span style={{ fontSize: '16px', fontWeight: 600 }}>{ch.poe_current} mA</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Class</span>
+                    <span style={{ fontSize: '16px', fontWeight: 600 }}>{ch.poe_class || 'N/A'}</span>
+                  </div>
+                </div>
+              )}
 
               {/* Error Ribbon */}
               {ch.error && (
