@@ -44,8 +44,7 @@ source ./scripts/common.sh
 ensure_go_installed
 GO_CMD="go"
 
-cd ./services/proxy
-$GO_CMD build -v -ldflags="-X main.appVersion=$(git describe --tags --long --dirty)" -o epoch-proxy-server main.go
+$GO_CMD build -v -ldflags="-X main.appVersion=$(git describe --tags --long --dirty)" -o unifi-control main.go
 if [ $? -ne 0 ]; then
     echo "Backend build failed!"
     exit 1
