@@ -66,6 +66,9 @@ func (a *API) Stop(ctx context.Context) error {
 }
 
 func (a *API) setupRoutes() {
+	// Enable logging
+	a.router.Use(LoggingMiddleware())
+
 	// Enable CORS for all routes (including preflight)
 	a.router.Use(CORSMiddleware())
 

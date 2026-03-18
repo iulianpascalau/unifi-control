@@ -177,8 +177,9 @@ func (c *client) updateDevice(deviceID string, overrides []map[string]interface{
 		_ = resp.Body.Close()
 	}()
 
-	if resp.StatusCode == http.StatusUnauthorized {
-		// Session might have expired, clear token and retry once
+	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
+		// Session might have expired or CSRF token is invalid, clear token and retry once
+		log.Debug("Unauthorized or Forbidden on updateDevice, retrying login...", "status code", resp.StatusCode)
 		c.setToken("")
 		err = c.ensureLoggedIn()
 		if err != nil {
@@ -228,8 +229,8 @@ func (c *client) GetAllDevices() ([]common.UnifiDeviceData, error) {
 		return devices, nil
 	}
 
-	// If 401 Unauthorized, session might have expired
-	if err.Error() == "401" {
+	// If 401 Unauthorized or 403 Forbidden, session might have expired
+	if err.Error() == "401" || err.Error() == "403" {
 		c.setToken("")
 		err = c.ensureLoggedIn()
 		if err != nil {
@@ -291,6 +292,13 @@ func (c *client) doGetAllDevicesFromUnifi(prefix string) ([]common.UnifiDeviceDa
 		log.Debug("Unauthorized request to Unifi controller", "reason", string(reason))
 
 		return nil, fmt.Errorf("401")
+	}
+
+	if resp.StatusCode == http.StatusForbidden {
+		reason, _ := io.ReadAll(resp.Body)
+		log.Debug("Forbidden request to Unifi controller", "reason", string(reason))
+
+		return nil, fmt.Errorf("403")
 	}
 
 	if resp.StatusCode == http.StatusNotFound {
