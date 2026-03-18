@@ -129,7 +129,7 @@ func TestClient_IsPoeOn(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 		case "/api/s/default/stat/device":
 			assert.NotEmpty(t, r.Header.Get("Referer"))
-			assert.Equal(t, "fake-token", r.Header.Get("X-CSRF-Token"))
+			assert.Equal(t, "", r.Header.Get("X-CSRF-Token"))
 			response := common.UnifiDeviceResponse{
 				Data: []common.UnifiDeviceData{
 					{
