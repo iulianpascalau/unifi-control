@@ -83,6 +83,10 @@ func (c *client) setToken(token string) {
 }
 
 func (c *client) loginWithLock() error {
+	// Wiping the cookie jar ensures we don't have stale/tainted session cookies
+	jar, _ := cookiejar.New(nil)
+	c.http.Jar = jar
+
 	loginURL := fmt.Sprintf("%s/api/auth/login", c.url)
 	payload, _ := json.Marshal(map[string]string{
 		"username": c.username,
@@ -218,32 +222,39 @@ func (c *client) GetDeviceInfo(mac string) (*common.UnifiDeviceData, error) {
 }
 
 func (c *client) GetAllDevices() ([]common.UnifiDeviceData, error) {
-	err := c.ensureLoggedIn()
-	if err != nil {
-		return nil, err
-	}
-
-	// First request attempt
-	devices, err := c.doGetAllDevices(c.getApiPrefix())
+	// First request attempt with current known prefix
+	currentPrefix := c.getApiPrefix()
+	devices, err := c.doGetAllDevices(currentPrefix)
 	if err == nil {
 		return devices, nil
 	}
 
-	// If 401 Unauthorized or 403 Forbidden, session might have expired
+	// If 401 Unauthorized or 403 Forbidden, session might have expired or CSRF is wrong
 	if err.Error() == "401" || err.Error() == "403" {
+		log.Debug("Auth error on GetAllDevices, attempting re-login", "status", err.Error())
 		c.setToken("")
 		err = c.ensureLoggedIn()
 		if err != nil {
 			return nil, err
 		}
-		return c.doGetAllDevices("")
+		// Retry with current prefix after fresh login
+		devices, err = c.doGetAllDevices(currentPrefix)
+		if err == nil {
+			return devices, nil
+		}
 	}
 
-	// If 404 and we haven't tried the prefix, try with /proxy/network
-	if err.Error() == "404" {
-		devices, err = c.doGetAllDevices(proxyPrefix)
+	// If targeting /proxy/network or root still fails with 404, try the other one
+	if err.Error() == "404" || err.Error() == "401" || err.Error() == "403" {
+		alternatePrefix := ""
+		if currentPrefix == "" {
+			alternatePrefix = proxyPrefix
+		}
+
+		log.Debug("Retrying with alternate prefix", "previous", currentPrefix, "new", alternatePrefix)
+		devices, err = c.doGetAllDevices(alternatePrefix)
 		if err == nil {
-			c.setApiPrefix(proxyPrefix)
+			c.setApiPrefix(alternatePrefix)
 			return devices, nil
 		}
 	}
