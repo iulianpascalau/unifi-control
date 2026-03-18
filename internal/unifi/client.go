@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/cookiejar"
 	"sync"
@@ -286,14 +287,23 @@ func (c *client) doGetAllDevicesFromUnifi(prefix string) ([]common.UnifiDeviceDa
 	}()
 
 	if resp.StatusCode == http.StatusUnauthorized {
+		reason, _ := io.ReadAll(resp.Body)
+		log.Debug("Unauthorized request to Unifi controller", "reason", string(reason))
+
 		return nil, fmt.Errorf("401")
 	}
 
 	if resp.StatusCode == http.StatusNotFound {
+		reason, _ := io.ReadAll(resp.Body)
+		log.Debug("Status not found on request to Unifi controller", "reason", string(reason))
+
 		return nil, fmt.Errorf("404")
 	}
 
 	if resp.StatusCode != http.StatusOK {
+		reason, _ := io.ReadAll(resp.Body)
+		log.Debug("Error on request to Unifi controller", "reason", string(reason), "status code", resp.StatusCode)
+
 		return nil, fmt.Errorf("failed to get devices: status %d", resp.StatusCode)
 	}
 
