@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+const reLoginDelay = 10 * time.Second
+
 type httpClientWithLogin struct {
 	httpClient *http.Client
 	url        string
@@ -19,6 +21,7 @@ type httpClientWithLogin struct {
 
 	criticalSection sync.Mutex
 	csrfToken       string
+	lastLogin       time.Time
 }
 
 func newHTTPClientWithLogin(url string, username string, password string) *httpClientWithLogin {
@@ -51,6 +54,11 @@ func (client *httpClientWithLogin) EnsureLoggedIn() error {
 func (client *httpClientWithLogin) Login() error {
 	client.criticalSection.Lock()
 	defer client.criticalSection.Unlock()
+
+	if time.Since(client.lastLogin) < reLoginDelay {
+		// Do not attempt a fast re-login
+		return nil
+	}
 
 	return client.loginNoLock()
 }
@@ -89,6 +97,7 @@ func (client *httpClientWithLogin) loginNoLock() error {
 
 	// Capture CSRF token for subsequent requests
 	client.csrfToken = resp.Header.Get("X-CSRF-Token")
+	client.lastLogin = time.Now()
 
 	log.Debug("Successfully logged in to UniFi controller")
 

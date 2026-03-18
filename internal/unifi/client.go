@@ -146,6 +146,11 @@ func (c *client) GetDeviceInfo(mac string) (*common.UnifiDeviceData, error) {
 }
 
 func (c *client) GetAllDevices() ([]common.UnifiDeviceData, error) {
+	err := c.httpClient.EnsureLoggedIn()
+	if err != nil {
+		return nil, err
+	}
+
 	devices, err := c.getAllDevices()
 	if err == nil {
 		return devices, nil
