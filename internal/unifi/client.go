@@ -2,11 +2,10 @@ package unifi
 
 import (
 	"bytes"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
-	"net/http/cookiejar"
 	"sync"
 	"time"
 
@@ -23,14 +22,9 @@ const cacheDuration = 10 * time.Second
 var log = logger.GetOrCreate("unifi-client")
 
 type client struct {
-	url      string
-	username string
-	password string
-	site     string
-	http     *http.Client
-
-	tokenMutex sync.Mutex
-	csrfToken  string
+	url        string
+	site       string
+	httpClient *httpClientWithLogin
 
 	apiPrefixMutex sync.RWMutex
 	apiPrefix      string // To handle UniFi OS proxy paths like /proxy/network
@@ -41,83 +35,21 @@ type client struct {
 }
 
 func NewClient(url, username, password, site string) *client {
-	jar, _ := cookiejar.New(nil)
 	return &client{
-		url:      url,
-		username: username,
-		password: password,
-		site:     site,
-		http: &http.Client{
-			Timeout: 10 * time.Second,
-			Jar:     jar,
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-			},
-		},
+		url:        url,
+		site:       site,
+		httpClient: newHTTPClientWithLogin(url, username, password),
 	}
-}
-
-func (c *client) ensureLoggedIn() error {
-	c.tokenMutex.Lock()
-	defer c.tokenMutex.Unlock()
-
-	if c.csrfToken != "" {
-		return nil
-	}
-
-	return c.loginWithLock()
 }
 
 func (c *client) Login() error {
-	c.tokenMutex.Lock()
-	defer c.tokenMutex.Unlock()
-
-	return c.loginWithLock()
-}
-
-func (c *client) setToken(token string) {
-	c.tokenMutex.Lock()
-	c.csrfToken = token
-	c.tokenMutex.Unlock()
-}
-
-func (c *client) loginWithLock() error {
-	loginURL := fmt.Sprintf("%s/api/auth/login", c.url)
-	payload, _ := json.Marshal(map[string]string{
-		"username": c.username,
-		"password": c.password,
-	})
-
-	req, err := http.NewRequest(http.MethodPost, loginURL, bytes.NewBuffer(payload))
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Referer", c.url)
-
-	resp, err := c.http.Do(req)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		_ = resp.Body.Close()
-	}()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("login failed with status: %d", resp.StatusCode)
-	}
-
-	// Capture CSRF token for subsequent requests
-	c.csrfToken = resp.Header.Get("X-CSRF-Token")
-
-	log.Debug("Successfully logged in to UniFi controller")
-
-	return nil
+	return c.httpClient.Login()
 }
 
 func (c *client) SetPoeMode(switchMAC string, portIdx int, on bool) error {
 	// 1. Ensure we are logged in
-	if err := c.ensureLoggedIn(); err != nil {
+	err := c.httpClient.EnsureLoggedIn()
+	if err != nil {
 		return err
 	}
 
@@ -165,10 +97,8 @@ func (c *client) updateDevice(deviceID string, overrides []map[string]interface{
 
 	req, _ := http.NewRequest(http.MethodPut, updateURL, bytes.NewBuffer(payload))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-CSRF-Token", c.csrfToken)
-	req.Header.Set("Referer", c.url)
 
-	resp, err := c.http.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return err
 	}
@@ -176,10 +106,10 @@ func (c *client) updateDevice(deviceID string, overrides []map[string]interface{
 		_ = resp.Body.Close()
 	}()
 
-	if resp.StatusCode == http.StatusUnauthorized {
-		// Session might have expired, clear token and retry once
-		c.setToken("")
-		err = c.ensureLoggedIn()
+	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
+		// Session might have expired or CSRF token is invalid, clear token and retry once
+		log.Debug("Unauthorized or Forbidden on updateDevice, retrying login...", "status code", resp.StatusCode)
+		err = c.httpClient.Login()
 		if err != nil {
 			return err
 		}
@@ -216,34 +146,49 @@ func (c *client) GetDeviceInfo(mac string) (*common.UnifiDeviceData, error) {
 }
 
 func (c *client) GetAllDevices() ([]common.UnifiDeviceData, error) {
-	err := c.ensureLoggedIn()
+	err := c.httpClient.EnsureLoggedIn()
 	if err != nil {
 		return nil, err
 	}
 
-	// First request attempt
+	devices, err := c.getAllDevices()
+	if err == nil {
+		return devices, nil
+	}
+
+	log.Debug("Auth error on GetAllDevices, attempting re-login", "status", err.Error())
+	err = c.httpClient.Login()
+	if err != nil {
+		return nil, err
+	}
+
+	devices, err = c.getAllDevices()
+	if err == nil {
+		return devices, nil
+	}
+
+	log.Debug("Failed to re-login, returning error", "error", err.Error())
+
+	return nil, err
+}
+
+func (c *client) getAllDevices() ([]common.UnifiDeviceData, error) {
+	// First request attempt with current known prefix
 	devices, err := c.doGetAllDevices(c.getApiPrefix())
 	if err == nil {
 		return devices, nil
 	}
 
-	// If 401 Unauthorized, session might have expired
-	if err.Error() == "401" {
-		c.setToken("")
-		err = c.ensureLoggedIn()
-		if err != nil {
-			return nil, err
-		}
-		return c.doGetAllDevices("")
+	// toggle prefix
+	alternatePrefix := proxyPrefix
+	if c.getApiPrefix() == proxyPrefix {
+		alternatePrefix = ""
 	}
 
-	// If 404 and we haven't tried the prefix, try with /proxy/network
-	if err.Error() == "404" {
-		devices, err = c.doGetAllDevices(proxyPrefix)
-		if err == nil {
-			c.setApiPrefix(proxyPrefix)
-			return devices, nil
-		}
+	devices, err = c.doGetAllDevices(alternatePrefix)
+	if err == nil {
+		c.setApiPrefix(alternatePrefix)
+		return devices, nil
 	}
 
 	return nil, err
@@ -274,10 +219,8 @@ func (c *client) doGetAllDevices(prefix string) ([]common.UnifiDeviceData, error
 func (c *client) doGetAllDevicesFromUnifi(prefix string) ([]common.UnifiDeviceData, error) {
 	apiURL := fmt.Sprintf("%s%s/api/s/%s/stat/device", c.url, prefix, c.site)
 	req, _ := http.NewRequest(http.MethodGet, apiURL, nil)
-	req.Header.Set("X-CSRF-Token", c.csrfToken)
-	req.Header.Set("Referer", c.url)
 
-	resp, err := c.http.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -286,14 +229,30 @@ func (c *client) doGetAllDevicesFromUnifi(prefix string) ([]common.UnifiDeviceDa
 	}()
 
 	if resp.StatusCode == http.StatusUnauthorized {
+		reason, _ := io.ReadAll(resp.Body)
+		log.Debug("Unauthorized request to Unifi controller", "reason", string(reason))
+
 		return nil, fmt.Errorf("401")
 	}
 
+	if resp.StatusCode == http.StatusForbidden {
+		reason, _ := io.ReadAll(resp.Body)
+		log.Debug("Forbidden request to Unifi controller", "reason", string(reason))
+
+		return nil, fmt.Errorf("403")
+	}
+
 	if resp.StatusCode == http.StatusNotFound {
+		reason, _ := io.ReadAll(resp.Body)
+		log.Debug("Status not found on request to Unifi controller", "reason", string(reason))
+
 		return nil, fmt.Errorf("404")
 	}
 
 	if resp.StatusCode != http.StatusOK {
+		reason, _ := io.ReadAll(resp.Body)
+		log.Debug("Error on request to Unifi controller", "reason", string(reason), "status code", resp.StatusCode)
+
 		return nil, fmt.Errorf("failed to get devices: status %d", resp.StatusCode)
 	}
 
@@ -334,6 +293,7 @@ func (c *client) getApiPrefix() string {
 
 func (c *client) setApiPrefix(prefix string) {
 	c.apiPrefixMutex.Lock()
+	log.Debug("Setting API prefix", "prefix", prefix)
 	c.apiPrefix = prefix
 	c.apiPrefixMutex.Unlock()
 }

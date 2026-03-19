@@ -8,7 +8,10 @@ import (
 	"unifi-control/internal/config"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
+
+var log = logger.GetOrCreate("channels-handler")
 
 const unknownName = "unknown"
 
@@ -46,12 +49,14 @@ func processPorts(channels []config.PortConfig) ([]string, map[string]config.Por
 }
 
 func (h *channelsHandler) GetPortIDs() []string {
+	log.Debug("GetPortIDs called", "count", len(h.portIDs))
 	return h.portIDs
 }
 
 func (h *channelsHandler) GetPort(portID string) common.PortStatus {
 	cfg, ok := h.portsAsMap[portID]
 	if !ok {
+		log.Error("port not found in configuration", "portID", portID)
 		return common.PortStatus{
 			Name:   unknownName,
 			PortID: portID,
@@ -62,6 +67,7 @@ func (h *channelsHandler) GetPort(portID string) common.PortStatus {
 
 	switchMAC, switchName, portIdx, err := h.resolveCameraLocation(cfg)
 	if err != nil {
+		log.Error("failed to resolve camera location", "name", cfg.Name, "cameraMAC", cfg.CameraMAC, "error", err)
 		return common.PortStatus{
 			Name:   cfg.Name,
 			PortID: portID,
@@ -72,6 +78,7 @@ func (h *channelsHandler) GetPort(portID string) common.PortStatus {
 
 	device, err := h.unifiClient.GetDeviceInfo(switchMAC)
 	if err != nil {
+		log.Error("failed to get device info from UniFi", "name", cfg.Name, "switchMAC", switchMAC, "error", err)
 		return common.PortStatus{
 			Name:   cfg.Name,
 			PortID: portID,
@@ -82,6 +89,7 @@ func (h *channelsHandler) GetPort(portID string) common.PortStatus {
 
 	for _, port := range device.PortTable {
 		if port.PortIdx == portIdx {
+			log.Debug("successfully fetched port status", "name", cfg.Name, "switchMAC", switchMAC, "portIdx", portIdx, "active", port.PoeMode != "off")
 			return common.PortStatus{
 				Name:       cfg.Name,
 				PortID:     portID,
@@ -98,6 +106,7 @@ func (h *channelsHandler) GetPort(portID string) common.PortStatus {
 		}
 	}
 
+	log.Error("port index not found on switch", "name", cfg.Name, "switchMAC", switchMAC, "portIdx", portIdx)
 	return common.PortStatus{
 		Name:   cfg.Name,
 		PortID: portID,
@@ -110,14 +119,17 @@ func (h *channelsHandler) GetPort(portID string) common.PortStatus {
 func (h *channelsHandler) Set(portID string, active bool) error {
 	cfg, ok := h.portsAsMap[portID]
 	if !ok {
+		log.Error("port not found in configuration for Set", "portID", portID)
 		return fmt.Errorf("port %s not found", portID)
 	}
 
 	switchMAC, _, portIdx, err := h.resolveCameraLocation(cfg)
 	if err != nil {
+		log.Error("failed to resolve camera location for Set", "name", cfg.Name, "cameraMAC", cfg.CameraMAC, "error", err)
 		return err
 	}
 
+	log.Debug("updating port PoE state", "name", cfg.Name, "switchMAC", switchMAC, "portIdx", portIdx, "active", active)
 	return h.unifiClient.SetPoeMode(switchMAC, portIdx, active)
 }
 
